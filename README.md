@@ -1,6 +1,7 @@
-# Youtube Bot
+# IRC Bots
 
 Youtube Bot is an irc bot for displaying information on Youtube links posted.
+Meta Bot is a irc bot for display information about links in general.
 
 Credits:
 * [ircbot-collection] - Base code used for irc bot.

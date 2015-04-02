@@ -7,6 +7,7 @@
 #
 
 import sys, string, random, time, urlparse, re
+from imgurpython import ImgurClient
 from ircbot import SingleServerIRCBot
 from irclib import nm_to_n, nm_to_h, irc_lower
 from xml.dom import minidom
@@ -53,6 +54,9 @@ class MetaBot(SingleServerIRCBot):
     else:
       self.say_public(text)
   
+  #def get_imgur_info(self, url):
+
+
   def get_youtube_id(self, value):
     """
     Examples:
@@ -70,6 +74,21 @@ class MetaBot(SingleServerIRCBot):
   # Type Specific Functions
   # 
 
+  # Imgur Link
+  def get_imgur_info(self, url):
+    # Returns imgur link info.
+    p = re.compile(ur'(?:.*)(?:http(?:s|)://(?:www\.|i\.|)imgur\.com/)([A-Za-z0-9]*)(?:(?:\.[jpgt]|\ |$).*)', re.IGNORECASE)
+    m = re.search(p, url)
+    if m is None:
+      return None
+
+    client = ImgurClient('', '')
+    img = client.get_image(m.group(1))
+    lines = []
+
+    lines.append("Title: " + img.title)
+    return lines
+
   # Youtube Link
   def get_youtube_info(self, url):
     "Returns youtube info"
@@ -83,7 +102,7 @@ class MetaBot(SingleServerIRCBot):
     itemlist = xmldoc.getElementsByTagName('title') 
     if len(itemlist) == 0:
       return
-    
+
     lines = []
 
     lines.append("Title: " + itemlist[0].firstChild.nodeValue.encode('ascii', 'ignore'))
@@ -97,12 +116,19 @@ class MetaBot(SingleServerIRCBot):
     return lines
 
   def get_url_type(self, url):
-    url_type = "youtube"
+    if re.match('.*(http(s|)://).*', url) is None:
+        return None
 
-    return url_type
+    if re.match('.*(http(s|)://(www\.|)(youtube|youtu\.be)).*', url) is not None:
+        return 'youtube'
+    elif re.match('.*(http(s|)://(www\.|i\.|)imgur).*', url) is not None:
+        return 'imgur'
+
+    return None
 
   get_url_info = {
-    'youtube': get_youtube_info
+    'youtube': get_youtube_info,
+    'imgur': get_imgur_info
   }
 
   def do_command(self, e, cmd, from_private):
@@ -117,12 +143,16 @@ class MetaBot(SingleServerIRCBot):
     if url_type is None:
       return
 
+    if url_type not in self.get_url_info:
+      return
+
     if e.eventtype() == "pubmsg":
       # self.reply() sees 'from_private = None' and sends to public channel.
       target = None
     else:
       # assume that from_private comes from a 'privmsg' event.
       target = from_private.strip()
+
 
     lines = self.get_url_info[url_type](self, cmd)
     if lines is None:
